@@ -8,7 +8,7 @@ interface Ticket {
   nombre_cliente: string;
   codigo_unico: string;
   detalles: string;
-  total: number;
+  total: number | string; // Se acepta también string, ya que lo convertiremos
 }
 
 const API_BASE_URL = 'http://192.168.1.69/Parqueacuatico/Parque/api'; // Reemplaza con la URL de tu servidor
@@ -24,9 +24,12 @@ export default function TicketScreen() {
       const data = await response.json();
       if (data.success) {
         setTicket(data.venta as Ticket);
+      } else {
+        Alert.alert('Error', 'No se encontró el ticket.');
       }
     } catch (error) {
       console.error('Error fetching ticket', error);
+      Alert.alert('Error', 'Error al obtener el ticket.');
     } finally {
       setLoading(false);
     }
@@ -38,8 +41,7 @@ export default function TicketScreen() {
 
   const handlePrintTicket = async () => {
     if (!ticket) return;
-
-    // Genera el contenido HTML para el ticket.
+    const totalValue = Number(ticket.total) || 0;
     const htmlContent = `
       <html>
         <head>
@@ -57,7 +59,7 @@ export default function TicketScreen() {
           <div class="ticket">
             <p><strong>Nombre:</strong> ${ticket.nombre_cliente}</p>
             <p><strong>Código Único:</strong> ${ticket.codigo_unico}</p>
-            <p><strong>Total:</strong> $${ticket.total.toFixed(2)}</p>
+            <p><strong>Total:</strong> $${totalValue.toFixed(2)}</p>
             <div class="detalles">
               <p><strong>Detalles:</strong></p>
               ${ticket.detalles.split('\n').map(line => `<p>${line}</p>`).join('')}
@@ -93,6 +95,8 @@ export default function TicketScreen() {
     );
   }
 
+  const totalValue = Number(ticket.total) || 0;
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Ticket de Compra</Text>
@@ -102,7 +106,7 @@ export default function TicketScreen() {
       {ticket.detalles.split('\n').map((line: string, index: number) => (
         <Text key={index} style={styles.detail}>{line}</Text>
       ))}
-      <Text style={styles.total}>Total: ${ticket.total.toFixed(2)}</Text>
+      <Text style={styles.total}>Total: ${totalValue.toFixed(2)}</Text>
       <View style={styles.buttonContainer}>
         <Button title="Imprimir Ticket" onPress={handlePrintTicket} />
       </View>
