@@ -1,7 +1,8 @@
 // app/ticket.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Button, Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import * as Print from 'expo-print';
 
 interface Ticket {
   nombre_cliente: string;
@@ -13,7 +14,6 @@ interface Ticket {
 const API_BASE_URL = 'http://192.168.1.69/Parqueacuatico/Parque/api'; // Reemplaza con la URL de tu servidor
 
 export default function TicketScreen() {
-  // Usamos useLocalSearchParams para obtener el parámetro 'codigo'
   const { codigo } = useLocalSearchParams() as { codigo: string };
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,6 +35,47 @@ export default function TicketScreen() {
   useEffect(() => {
     fetchTicket();
   }, []);
+
+  const handlePrintTicket = async () => {
+    if (!ticket) return;
+
+    // Genera el contenido HTML para el ticket.
+    const htmlContent = `
+      <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { text-align: center; }
+            .ticket { margin-top: 20px; }
+            .ticket p { margin: 5px 0; }
+            .detalles { margin-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <h1>Ticket de Compra</h1>
+          <div class="ticket">
+            <p><strong>Nombre:</strong> ${ticket.nombre_cliente}</p>
+            <p><strong>Código Único:</strong> ${ticket.codigo_unico}</p>
+            <p><strong>Total:</strong> $${ticket.total.toFixed(2)}</p>
+            <div class="detalles">
+              <p><strong>Detalles:</strong></p>
+              ${ticket.detalles.split('\n').map(line => `<p>${line}</p>`).join('')}
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    try {
+      await Print.printAsync({
+        html: htmlContent,
+      });
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo imprimir el ticket.');
+      console.error(error);
+    }
+  };
 
   if (loading) {
     return (
@@ -61,7 +102,10 @@ export default function TicketScreen() {
       {ticket.detalles.split('\n').map((line: string, index: number) => (
         <Text key={index} style={styles.detail}>{line}</Text>
       ))}
-      <Text style={styles.total}>Total: ${parseFloat(ticket.total.toString()).toFixed(2)}</Text>
+      <Text style={styles.total}>Total: ${ticket.total.toFixed(2)}</Text>
+      <View style={styles.buttonContainer}>
+        <Button title="Imprimir Ticket" onPress={handlePrintTicket} />
+      </View>
     </ScrollView>
   );
 }
@@ -74,4 +118,5 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 20, fontWeight: '600', marginTop: 15 },
   detail: { fontSize: 16, marginVertical: 2 },
   total: { fontSize: 22, fontWeight: 'bold', marginTop: 20, textAlign: 'center' },
+  buttonContainer: { marginTop: 30 },
 });
